@@ -10,10 +10,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type usersStorage struct{}
+type usersStorage struct {
+	context *storageContext
+}
 
 func (storage *usersStorage) Exists(username string) bool {
-	count, err := mongoClient.collection.CountDocuments(context.TODO(), bson.M{"username": username})
+	count, err := storage.context.collection.CountDocuments(context.TODO(), bson.M{"username": username})
 
 	if err != nil || count <= 0 {
 		return false
@@ -23,7 +25,7 @@ func (storage *usersStorage) Exists(username string) bool {
 }
 
 func (storage *usersStorage) Add(username string) error {
-	insertResult, err := mongoClient.collection.InsertOne(context.TODO(), UserRow{
+	insertResult, err := storage.context.collection.InsertOne(context.TODO(), UserRow{
 		username,
 		"",
 		"",
@@ -45,7 +47,7 @@ func (storage *usersStorage) Delete(username string) error {
 			}},
 	}
 
-	result, err := mongoClient.collection.DeleteOne(context.TODO(), filter)
+	result, err := storage.context.collection.DeleteOne(context.TODO(), filter)
 	if err != nil {
 		return err
 	}
@@ -67,12 +69,12 @@ func (storage *usersStorage) List(searchQuery string, offset, limit int) ([]cont
 	}
 	filter := bson.M{"$and": filterQuery}
 
-	totalCount, err := mongoClient.collection.CountDocuments(context.TODO(), filter)
+	totalCount, err := storage.context.collection.CountDocuments(context.TODO(), filter)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	cursor, err := mongoClient.collection.Find(context.TODO(), filter, opts)
+	cursor, err := storage.context.collection.Find(context.TODO(), filter, opts)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -9,10 +9,11 @@ import (
 )
 
 type smtpViaIpAuthentication struct {
+	context *storageContext
 }
 
 func (authentication *smtpViaIpAuthentication) Enabled() bool {
-	return mongoClient.config.Smtp.ViaIpAuthentication.Enabled
+	return authentication.context.config.Smtp.ViaIpAuthentication.Enabled
 }
 
 func (authentication *smtpViaIpAuthentication) Authenticate(username string, ip string) bool {
@@ -21,7 +22,7 @@ func (authentication *smtpViaIpAuthentication) Authenticate(username string, ip 
 	}
 
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		logManager().Debug(err.Error())
 		return false
@@ -32,7 +33,7 @@ func (authentication *smtpViaIpAuthentication) Authenticate(username string, ip 
 
 func (authentication *smtpViaIpAuthentication) AddIp(username string, ip string) error {
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,7 @@ func (authentication *smtpViaIpAuthentication) AddIp(username string, ip string)
 
 	newValues = append(newValues, bson.E{"smtp_auth_ips", user.SmtpAuthIPs})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	if updateResult.MatchedCount <= 0 {
 		err = errors.New("user with such username not found")
@@ -67,7 +68,7 @@ func (authentication *smtpViaIpAuthentication) AddIp(username string, ip string)
 
 func (authentication *smtpViaIpAuthentication) DeleteIp(username string, ip string) error {
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func (authentication *smtpViaIpAuthentication) DeleteIp(username string, ip stri
 
 	newValues = append(newValues, bson.E{"smtp_auth_ips", user.SmtpAuthIPs})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 
@@ -109,7 +110,7 @@ func (authentication *smtpViaIpAuthentication) ClearAllIps(username string) erro
 
 	newValues = append(newValues, bson.E{"smtp_auth_ips", []string{}})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 

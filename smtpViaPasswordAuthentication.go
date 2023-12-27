@@ -9,10 +9,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type smtpViaPasswordAuthentication struct{}
+type smtpViaPasswordAuthentication struct {
+	context *storageContext
+}
 
 func (authentication *smtpViaPasswordAuthentication) Enabled() bool {
-	return mongoClient.config.Smtp.ViaPasswordAuthentication.Enabled
+	return authentication.context.config.Smtp.ViaPasswordAuthentication.Enabled
 }
 
 func (authentication *smtpViaPasswordAuthentication) Authenticate(username string, password string) bool {
@@ -21,7 +23,7 @@ func (authentication *smtpViaPasswordAuthentication) Authenticate(username strin
 	}
 
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		logManager().Debug(err.Error())
 		return false
@@ -59,7 +61,7 @@ func (authentication *smtpViaPasswordAuthentication) SetPassword(username string
 
 	newValues = append(newValues, bson.E{"smtp_password", newPassHash})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	if updateResult.MatchedCount <= 0 {
 		err = errors.New("user with such username not found")

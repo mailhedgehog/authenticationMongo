@@ -18,8 +18,6 @@ func logManager() *logger.Logger {
 	return configuredLogger
 }
 
-var mongoClient *Mongo
-
 func CreateMongoDbAuthentication(collection *mongo.Collection, config *contracts.AuthenticationConfig) *Mongo {
 	indexName, err := collection.Indexes().CreateOne(context.TODO(), mongo.IndexModel{
 		Keys: bson.M{"username": 1},
@@ -28,10 +26,13 @@ func CreateMongoDbAuthentication(collection *mongo.Collection, config *contracts
 
 	logManager().Debug(fmt.Sprintf("Index [%s] created", indexName))
 
-	mongoClient = &Mongo{
-		collection: collection,
-		config:     config,
-	}
+	storage := &Mongo{
+		context: &storageContext{
+			collection: collection,
+			config:     config,
+		}}
 
-	return mongoClient
+	storage.context.storage = storage
+
+	return storage
 }

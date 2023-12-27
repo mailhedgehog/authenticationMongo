@@ -10,10 +10,11 @@ import (
 )
 
 type dashboardViaPasswordAuthentication struct {
+	context *storageContext
 }
 
 func (authentication *dashboardViaPasswordAuthentication) Enabled() bool {
-	return mongoClient.config.Dashboard.ViaPasswordAuthentication.Enabled
+	return authentication.context.config.Dashboard.ViaPasswordAuthentication.Enabled
 }
 
 func (authentication *dashboardViaPasswordAuthentication) Authenticate(username string, password string) bool {
@@ -22,7 +23,7 @@ func (authentication *dashboardViaPasswordAuthentication) Authenticate(username 
 	}
 
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		logManager().Debug(err.Error())
 		return false
@@ -60,7 +61,7 @@ func (authentication *dashboardViaPasswordAuthentication) SetPassword(username s
 
 	newValues = append(newValues, bson.E{"dashboard_password", newPassHash})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	if updateResult.MatchedCount <= 0 {
 		err = errors.New("user with such username not found")

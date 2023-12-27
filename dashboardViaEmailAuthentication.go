@@ -9,10 +9,11 @@ import (
 )
 
 type dashboardViaEmailAuthentication struct {
+	context *storageContext
 }
 
 func (authentication *dashboardViaEmailAuthentication) Enabled() bool {
-	return mongoClient.config.Dashboard.ViaEmailAuthentication.Enabled
+	return authentication.context.config.Dashboard.ViaEmailAuthentication.Enabled
 }
 
 func (authentication *dashboardViaEmailAuthentication) SendToken(username string, email string) error {
@@ -25,7 +26,7 @@ func (authentication *dashboardViaEmailAuthentication) Authenticate(username str
 
 func (authentication *dashboardViaEmailAuthentication) AddEmail(username string, email string) error {
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,7 @@ func (authentication *dashboardViaEmailAuthentication) AddEmail(username string,
 
 	newValues = append(newValues, bson.E{"dashboard_auth_emails", user.DashboardAuthEmails})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 
@@ -56,7 +57,7 @@ func (authentication *dashboardViaEmailAuthentication) AddEmail(username string,
 
 func (authentication *dashboardViaEmailAuthentication) DeleteEmail(username string, email string) error {
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := authentication.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func (authentication *dashboardViaEmailAuthentication) DeleteEmail(username stri
 
 	newValues = append(newValues, bson.E{"dashboard_auth_emails", user.DashboardAuthEmails})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 
@@ -98,7 +99,7 @@ func (authentication *dashboardViaEmailAuthentication) ClearAllEmails(username s
 
 	newValues = append(newValues, bson.E{"dashboard_auth_emails", []string{}})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := authentication.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 

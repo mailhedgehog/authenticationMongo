@@ -8,10 +8,11 @@ import (
 )
 
 type smtpIpsAllowList struct {
+	context *storageContext
 }
 
 func (allowlist *smtpIpsAllowList) Enabled() bool {
-	return mongoClient.config.Smtp.IpsAllowList.Enabled
+	return allowlist.context.config.Smtp.IpsAllowList.Enabled
 }
 
 func (allowlist *smtpIpsAllowList) Allowed(username string, ip string) bool {
@@ -20,7 +21,7 @@ func (allowlist *smtpIpsAllowList) Allowed(username string, ip string) bool {
 	}
 
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := allowlist.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		logManager().Debug(err.Error())
 		return false
@@ -31,7 +32,7 @@ func (allowlist *smtpIpsAllowList) Allowed(username string, ip string) bool {
 
 func (allowlist *smtpIpsAllowList) AddIp(username string, ip string) error {
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := allowlist.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -53,7 +54,7 @@ func (allowlist *smtpIpsAllowList) AddIp(username string, ip string) error {
 
 	newValues = append(newValues, bson.E{"smtp_allow_listed_ips", user.SmtpAllowListedIPs})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := allowlist.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 
@@ -62,7 +63,7 @@ func (allowlist *smtpIpsAllowList) AddIp(username string, ip string) error {
 
 func (allowlist *smtpIpsAllowList) DeleteIp(username string, ip string) error {
 	var user UserRow
-	err := mongoClient.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
+	err := allowlist.context.collection.FindOne(context.TODO(), bson.M{"username": username}).Decode(&user)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func (allowlist *smtpIpsAllowList) DeleteIp(username string, ip string) error {
 
 	newValues = append(newValues, bson.E{"smtp_allow_listed_ips", user.SmtpAllowListedIPs})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := allowlist.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 
@@ -104,7 +105,7 @@ func (allowlist *smtpIpsAllowList) ClearAllIps(username string) error {
 
 	newValues = append(newValues, bson.E{"smtp_allow_listed_ips", []string{}})
 
-	updateResult, err := mongoClient.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
+	updateResult, err := allowlist.context.collection.UpdateOne(context.TODO(), filter, bson.D{bson.E{"$set", newValues}})
 
 	logManager().Debug(fmt.Sprintf("User [%s] updated, mongo _id='%s'", username, updateResult.UpsertedID))
 

@@ -6,8 +6,13 @@ import (
 )
 
 type Mongo struct {
-	config     *contracts.AuthenticationConfig
+	context *storageContext
+}
+
+type storageContext struct {
 	collection *mongo.Collection
+	config     *contracts.AuthenticationConfig
+	storage    *Mongo
 }
 
 type UserRow struct {
@@ -20,11 +25,11 @@ type UserRow struct {
 }
 
 func (mongo *Mongo) SMTP() contracts.SmtpAuthentication {
-	return &smtpAuthentication{}
+	return &smtpAuthentication{mongo.context}
 }
 func (mongo *Mongo) Dashboard() contracts.DashboardAuthentication {
-	return &dashboardAuthentication{}
+	return &dashboardAuthentication{mongo.context}
 }
 func (mongo *Mongo) UsersStorage() contracts.UsersStorage {
-	return &usersStorage{}
+	return &usersStorage{mongo.context}
 }
